@@ -4,14 +4,6 @@ resource "azurerm_resource_group" "main" {
   location = "${var.location}"
 }
 
-# Create a Virtual Network for Transit Gateway
-resource "azurerm_virtual_network" "tgwvnet" {
-  name                = "${var.prefix}-tgw-network"
-  address_space       = ["${var.tgwcidr}"]
-  resource_group_name = "${azurerm_resource_group.main.name}"
-  location            = "${azurerm_resource_group.main.location}"
-}
-
 # Create a Virtual Network for Private DMZ
 resource "azurerm_virtual_network" "main" {
   name                = "${var.prefix}-network"
@@ -20,20 +12,12 @@ resource "azurerm_virtual_network" "main" {
   location            = "${azurerm_resource_group.main.location}"
 }
 
-# Create a frontend subnet for Transit Gateway
-resource "azurerm_subnet" "tgwfrontend" {
-  name                 = "tgwfrontend"
-  virtual_network_name = "${azurerm_virtual_network.tgwvnet.name}"
-  resource_group_name  = "${azurerm_resource_group.main.name}"
-  address_prefix       = "${var.tgwsubnets["frontend"]}"
-}
-
 # Create a gwsubnet subnet for Transit Gateway
 resource "azurerm_subnet" "GatewaySubnet" {
   name                 = "GatewaySubnet"
-  virtual_network_name = "${azurerm_virtual_network.tgwvnet.name}"
+  virtual_network_name = "${azurerm_virtual_network.main.name}"
   resource_group_name  = "${azurerm_resource_group.main.name}"
-  address_prefix       = "${var.tgwsubnets["gwsubnet"]}"
+  address_prefix       = "${var.subnets["gwsubnet"]}"
 }
 
 # Create the first Subnet within the Private DMZ Virtual Network
@@ -115,7 +99,7 @@ resource "azurerm_virtual_network_gateway" "site1" {
   name                = "site1"
   location            = "${azurerm_resource_group.main.location}"
   resource_group_name = "${azurerm_resource_group.main.name}"
-  depends_on         = ["azurerm_public_ip.tgwpip", "azurerm_virtual_network.tgwvnet"]
+  depends_on         = ["azurerm_public_ip.tgwpip"]
 
   type     = "Vpn"
   vpn_type = "RouteBased"
@@ -155,7 +139,8 @@ resource "azurerm_route_table" "gwrt" {
   # This route is using Azure LB IP address as the next hop
   route {
     name           = "route1"
-    address_prefix = "${var.tgwcidr}"
+    # This route is configured depending on the specific usecase
+    address_prefix = "20.90.0.0/16"
     next_hop_type  = "VirtualAppliance"
     next_hop_in_ip_address = "${var.lb_ip}"
   }
@@ -168,27 +153,6 @@ resource "azurerm_route_table" "gwrt" {
 resource "azurerm_subnet_route_table_association" "gwrt-GWS" {
   subnet_id      = "${azurerm_subnet.GatewaySubnet.id}"
   route_table_id = "${azurerm_route_table.gwrt.id}"
-}
-
-# VNet Peerings
-resource "azurerm_virtual_network_peering" "tgw-main" {
-  name                      = "tgw-main"
-  resource_group_name       = "${azurerm_resource_group.main.name}"
-  virtual_network_name      = "${azurerm_virtual_network.tgwvnet.name}"
-  remote_virtual_network_id = "${azurerm_virtual_network.main.id}"
-  allow_gateway_transit	    = "true"
-  allow_virtual_network_access = "true"
-  depends_on		    = ["azurerm_subnet.tgwfrontend", "azurerm_subnet.GatewaySubnet", "azurerm_subnet_route_table_association.gwrt-GWS"]
-}
-
-resource "azurerm_virtual_network_peering" "main-tgw" {
-  name                      = "main-tgw"
-  resource_group_name       = "${azurerm_resource_group.main.name}"
-  virtual_network_name      = "${azurerm_virtual_network.main.name}"
-  remote_virtual_network_id = "${azurerm_virtual_network.tgwvnet.id}"
-  use_remote_gateways	    = "true"
-  allow_virtual_network_access = "true"
-  depends_on                = ["azurerm_subnet.Mgmt", "azurerm_subnet.External", "azurerm_virtual_network_gateway_connection.onpremise1"]
 }
 
 # Obtain Gateway IP for each Private DMZ Subnet

@@ -1,5 +1,5 @@
 # Environment
-variable prefix	{ default = "zludmz" }
+variable prefix	{ default = "zlupdmz" }
 variable uname	{ default = "azureuser" }
 variable upassword	{ default = "Default12345" }
 variable location	{ default = "eastus" }	 
@@ -15,18 +15,11 @@ variable "onpremsite1" {
 		"sharekey" = "abc123"
 	}
 }
-variable tgwcidr { default = "10.80.0.0/16" }
-variable "tgwsubnets" {
-	type = "map"
-	default = {
-		"frontend" = "10.80.1.0/24"
-		"gwsubnet" = "10.80.255.0/24"
-	}
-}
 variable cidr	{ default = "10.90.0.0/16" }
 variable "subnets" {
 	type = "map"
 	default = {
+                "gwsubnet" = "10.90.255.0/24"
 		"subnet1" = "10.90.1.0/24"
 		"subnet2" = "10.90.2.0/24"
 		"subnet3" = "10.90.3.0/24"
