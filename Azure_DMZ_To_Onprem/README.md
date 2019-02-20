@@ -1,4 +1,4 @@
-# Deploying BIG-IP VEs in Azure - ConfigSync Cluster (Active/Active): Two NICs
+# Deploying BIG-IP VEs in Azure - ConfigSync Cluster (Active/Standby): Two NICs
 
 ## Contents
 
@@ -9,15 +9,18 @@
 - [Configuration Example](#configuration-example)
 
 ## Introduction
+This reference architecture shows a secure hybrid network that extends an on-premises network to Azure. The architecture implements a DMZ, also called a perimeter network, between the on-premises network and an Azure virtual network (VNet). The DMZ includes network virtual appliances (NVAs) that implement security functionality such as firewalls and packet inspection.
 
-This solution uses an Terraform template to launch a two NIC deployment of a cloud-focused BIG-IP VE cluster (Active/Active) in Microsoft Azure. Traffic flows from an ALB to the BIG-IP VE which then processes the traffic to application servers. This is the standard cloud design where the BIG-IP VE instance is running with a dual interface, where both management and data plane traffic is processed on each one.  
+This solution uses an Terraform template to launch a two NIC deployment of a cloud-focused BIG-IP VE cluster (Active/Standby) in Microsoft Azure. Traffic flows from an ALB to the BIG-IP VE which then processes the traffic to application servers. This is the standard cloud design where the BIG-IP VE instance is running with a dual interface, where both management and data plane traffic is processed on each one.  
 
 The BIG-IP VEs have the [Local Traffic Manager (LTM)](https://f5.com/products/big-ip/local-traffic-manager-ltm) module enabled to provide advanced traffic management functionality. This means you can also configure the BIG-IP VE to enable F5's L4/L7 security features, access control, and intelligent traffic management.
 
 **Networking Stack Type:** This solution deploys into a new networking stack, which is created along with the solution.
 
 ## Prerequisites
-
+- On-premises network. A private local-area network implemented in an organization.
+- Gateway. The gateway provides connectivity between the routers in the on-premises network and the VNet.
+- User defined routes (UDR). User defined routes define the flow of IP traffic within Azure VNets
 - **Important**: When you configure the admin password for the BIG-IP VE in the template, you cannot use the character **#**.  Additionally, there are a number of other special characters that you should avoid using for F5 product user accounts.  See [K2873](https://support.f5.com/csp/article/K2873) for details.
 - This template requires a service principal.  See the [Service Principal Setup section](#service-principal-authentication) for details, including required permissions.
 - This deployment will be using the Terraform Azurerm provider to build out all the neccessary Azure objects. Therefore, Azure CLI is required. for installation, please follow this [Microsoft link](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest)
@@ -48,6 +51,9 @@ The BIG-IP VEs have the [Local Traffic Manager (LTM)](https://f5.com/products/bi
 | Parameter | Required | Description |
 | --- | --- | --- |
 | prefix | Yes | This value is insert in the beginning of each Azure object, try keeps it alpha-numeric without any special character |
+| onpremsite1 | Yes | On-prem VPN endpoint public IP, address spaces, and sharekey. |
+| tgwcidr | Yes | IP Address range of the Transit Gateway Virtual Network |
+| lb_ip | Yes | Private IP address to allocate for the Azure Load Balancer |
 | uname | Yes | User name for the Virtual Machine. |
 | upassword | Yes | Password for the Virtual Machine. |
 | location | Yes | Location of the deployment. |
@@ -78,16 +84,6 @@ The BIG-IP VEs have the [Local Traffic Manager (LTM)](https://f5.com/products/bi
 | libs_dir | Yes | This is where all the temporary libs and RPM will be store in BIG-IP. |
 | onboard_log | Yes | This is where the onboarding script logs all the events. |
 
-### Programmatic deployments
-
-As an alternative to deploying through the Azure Portal (GUI) each solution provides example scripts to deploy the ARM template.  The example commands can be found below along with the name of the script file, which exists in the current directory.
-
-#### PowerShell Script Example
-
-```powershell
-## Example Command: .\Deploy_via_PS.ps1 -numberOfInstances 2 -adminUsername azureuser -authenticationType password -adminPasswordOrKey <value> -dnsLabel <value> -instanceType Standard_DS2_v2 -imageName AllTwoBootLocations -bigIpVersion 13.1.100000 -licenseKey1 <value> -licenseKey2 <value> -vnetAddressPrefix 10.0 -ntpServer 0.pool.ntp.org -timeZone UTC -customImage OPTIONAL -allowUsageAnalytics Yes -resourceGroupName <value>
-```
-
 =======
 
 #### Azure CLI (1.0) Script Example
@@ -98,7 +94,7 @@ As an alternative to deploying through the Azure Portal (GUI) each solution prov
 
 ## Configuration Example
 
-The following is an example configuration diagram for this solution deployment. In this scenario, all access to the BIG-IP VE cluster (Active/Active) is through an ALB. The IP addresses in this example may be different in your implementation.
+The following is an example configuration diagram for this solution deployment. In this scenario, all access to the BIG-IP VE cluster (Active/Active) is through an ALB. The IP addresses in this example may be different in your implementation. Please check the [Reference Architecture](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/dmz/secure-vnet-hybrid) for detail
 
 ![Configuration Example](./dmz-private.png)
 
