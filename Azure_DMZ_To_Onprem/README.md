@@ -52,7 +52,6 @@ The BIG-IP VEs have the [Local Traffic Manager (LTM)](https://f5.com/products/bi
 | --- | --- | --- |
 | prefix | Yes | This value is insert in the beginning of each Azure object, try keeps it alpha-numeric without any special character |
 | onpremsite1 | Yes | On-prem VPN endpoint public IP, address spaces, and sharekey. |
-| tgwcidr | Yes | IP Address range of the Transit Gateway Virtual Network |
 | lb_ip | Yes | Private IP address to allocate for the Azure Load Balancer |
 | uname | Yes | User name for the Virtual Machine. |
 | upassword | Yes | Password for the Virtual Machine. |
